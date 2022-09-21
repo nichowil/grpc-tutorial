@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package transform;
+
+option go_package = "nichowil/grpc-tutorial/transform";
+
+// Service definition.
+service Transform {
+  // Transforms image
+  rpc Transform (stream Pixel) returns (stream Pixel) {}
+}
+
+message Pixel {
+    Color color = 1;
+    Point point = 2;
+}
+
+message Point {
+    int32 x = 1;
+    int32 y = 2;
+}
+
+
+// The response message containing the greetings
+message Color {
+  float r = 1;
+  float g = 2;
+  float b = 3;
+  float a = 4;
+}
