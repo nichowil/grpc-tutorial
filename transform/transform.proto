@@ -8,6 +8,7 @@ option go_package = "nichowil/grpc-tutorial/transform";
 service Transform {
   // Transforms image
   rpc Transform (stream Pixel) returns (stream Pixel) {}
+  rpc SimulateError (ErrorHandlingRequest) returns (ErrorHandlingResponse) {}
 }
 
 message Pixel {
@@ -27,4 +28,12 @@ message Color {
   float g = 2;
   float b = 3;
   float a = 4;
+}
+
+message ErrorHandlingResponse {
+  string message = 1;
+}
+
+message ErrorHandlingRequest {
+  string message = 1;
 }
