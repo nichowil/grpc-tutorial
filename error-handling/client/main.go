@@ -21,17 +21,17 @@ func main() {
 	c := pb.NewTransformClient(conn)
 
 	// Contact the server and print out its response.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	r, err := c.SimulateError(ctx, &pb.ErrorHandlingRequest{Message: "invalid argument"})
 	if err != nil {
-		log.Printf("could not greet: %v\n", err) // log.Fatal stop apps when called
+		log.Printf("could not simulate error: %v\n", err) // log.Fatal stop apps when called
 	}
-	log.Printf("Greeting: %s", r.GetMessage())
 
 	r, err = c.SimulateError(ctx, &pb.ErrorHandlingRequest{Message: "timeout"})
 	if err != nil {
-		log.Fatalf("could not greet: %v", err)
+		log.Printf("could not simulate error: %v", err)
 	}
-	log.Printf("Greeting: %s", r.GetMessage())
+
+	log.Printf("Response: %s", r.GetMessage())
 }

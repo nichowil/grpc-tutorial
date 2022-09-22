@@ -4,9 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -30,11 +30,27 @@ func (s *server) SimulateError(ctx context.Context, in *pb.ErrorHandlingRequest)
 	if in.GetMessage() == "invalid argument" {
 		log.Println("invalid argument : called")
 		return &pb.ErrorHandlingResponse{}, status.Error(codes.InvalidArgument, "Max num of characters exceed")
-	} else if in.GetMessage() == "timeout" {
-		time.Sleep(time.Second * 2)
 	}
 
 	return &pb.ErrorHandlingResponse{Message: "Testing error code : " + in.GetMessage()}, nil
+}
+
+func (s *server) Transform(stream pb.Transform_TransformServer) error {
+	//var imageVector [][]pb.Color
+	for {
+		pixel, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		// do smth to pixel here
+		pixel.Color.R = 0
+
+		stream.Send(pixel)
+	}
 }
 
 func main() {
@@ -43,10 +59,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
+	s := grpc.NewServer(grpc.StreamInterceptor(StreamServerInterceptor))
 	pb.RegisterTransformServer(s, &server{})
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+}
+
+func StreamServerInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	log.Println("Stream server Interceptor")
+	return nil
 }
