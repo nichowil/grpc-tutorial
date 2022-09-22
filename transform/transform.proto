@@ -9,6 +9,7 @@ service Transform {
   // Transforms image
   rpc Transform (stream Pixel) returns (stream Pixel) {}
   rpc SimulateError (ErrorHandlingRequest) returns (ErrorHandlingResponse) {}
+  rpc SayHello (HelloRequest) returns (HelloResponse) {}
 }
 
 message Pixel {
@@ -35,5 +36,13 @@ message ErrorHandlingResponse {
 }
 
 message ErrorHandlingRequest {
+  string message = 1;
+}
+
+message HelloRequest {
+  string name = 1;
+}
+
+message HelloResponse {
   string message = 1;
 }

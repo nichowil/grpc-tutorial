@@ -25,6 +25,7 @@ type TransformClient interface {
 	// Transforms image
 	Transform(ctx context.Context, opts ...grpc.CallOption) (Transform_TransformClient, error)
 	SimulateError(ctx context.Context, in *ErrorHandlingRequest, opts ...grpc.CallOption) (*ErrorHandlingResponse, error)
+	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
 }
 
 type transformClient struct {
@@ -75,6 +76,15 @@ func (c *transformClient) SimulateError(ctx context.Context, in *ErrorHandlingRe
 	return out, nil
 }
 
+func (c *transformClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error) {
+	out := new(HelloResponse)
+	err := c.cc.Invoke(ctx, "/transform.Transform/SayHello", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TransformServer is the server API for Transform service.
 // All implementations must embed UnimplementedTransformServer
 // for forward compatibility
@@ -82,6 +92,7 @@ type TransformServer interface {
 	// Transforms image
 	Transform(Transform_TransformServer) error
 	SimulateError(context.Context, *ErrorHandlingRequest) (*ErrorHandlingResponse, error)
+	SayHello(context.Context, *HelloRequest) (*HelloResponse, error)
 	mustEmbedUnimplementedTransformServer()
 }
 
@@ -94,6 +105,9 @@ func (UnimplementedTransformServer) Transform(Transform_TransformServer) error {
 }
 func (UnimplementedTransformServer) SimulateError(context.Context, *ErrorHandlingRequest) (*ErrorHandlingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SimulateError not implemented")
+}
+func (UnimplementedTransformServer) SayHello(context.Context, *HelloRequest) (*HelloResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
 }
 func (UnimplementedTransformServer) mustEmbedUnimplementedTransformServer() {}
 
@@ -152,6 +166,24 @@ func _Transform_SimulateError_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Transform_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HelloRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TransformServer).SayHello(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/transform.Transform/SayHello",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TransformServer).SayHello(ctx, req.(*HelloRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Transform_ServiceDesc is the grpc.ServiceDesc for Transform service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -162,6 +194,10 @@ var Transform_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SimulateError",
 			Handler:    _Transform_SimulateError_Handler,
+		},
+		{
+			MethodName: "SayHello",
+			Handler:    _Transform_SayHello_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
