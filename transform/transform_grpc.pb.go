@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type TransformClient interface {
 	// Returns hello + name string
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
+	Transform(ctx context.Context, opts ...grpc.CallOption) (Transform_TransformClient, error)
 }
 
 type transformClient struct {
@@ -43,12 +44,44 @@ func (c *transformClient) SayHello(ctx context.Context, in *HelloRequest, opts .
 	return out, nil
 }
 
+func (c *transformClient) Transform(ctx context.Context, opts ...grpc.CallOption) (Transform_TransformClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Transform_ServiceDesc.Streams[0], "/transform.Transform/Transform", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &transformTransformClient{stream}
+	return x, nil
+}
+
+type Transform_TransformClient interface {
+	Send(*Pixel) error
+	Recv() (*Pixel, error)
+	grpc.ClientStream
+}
+
+type transformTransformClient struct {
+	grpc.ClientStream
+}
+
+func (x *transformTransformClient) Send(m *Pixel) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *transformTransformClient) Recv() (*Pixel, error) {
+	m := new(Pixel)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // TransformServer is the server API for Transform service.
 // All implementations must embed UnimplementedTransformServer
 // for forward compatibility
 type TransformServer interface {
 	// Returns hello + name string
 	SayHello(context.Context, *HelloRequest) (*HelloResponse, error)
+	Transform(Transform_TransformServer) error
 	mustEmbedUnimplementedTransformServer()
 }
 
@@ -58,6 +91,9 @@ type UnimplementedTransformServer struct {
 
 func (UnimplementedTransformServer) SayHello(context.Context, *HelloRequest) (*HelloResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
+}
+func (UnimplementedTransformServer) Transform(Transform_TransformServer) error {
+	return status.Errorf(codes.Unimplemented, "method Transform not implemented")
 }
 func (UnimplementedTransformServer) mustEmbedUnimplementedTransformServer() {}
 
@@ -90,6 +126,32 @@ func _Transform_SayHello_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Transform_Transform_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(TransformServer).Transform(&transformTransformServer{stream})
+}
+
+type Transform_TransformServer interface {
+	Send(*Pixel) error
+	Recv() (*Pixel, error)
+	grpc.ServerStream
+}
+
+type transformTransformServer struct {
+	grpc.ServerStream
+}
+
+func (x *transformTransformServer) Send(m *Pixel) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *transformTransformServer) Recv() (*Pixel, error) {
+	m := new(Pixel)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Transform_ServiceDesc is the grpc.ServiceDesc for Transform service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -102,6 +164,13 @@ var Transform_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Transform_SayHello_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Transform",
+			Handler:       _Transform_Transform_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "transform/transform.proto",
 }

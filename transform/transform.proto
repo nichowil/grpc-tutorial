@@ -8,6 +8,8 @@ option go_package = "nichowil/grpc-tutorial/transform"; //Go import path
 service Transform {
   // Returns hello + name string
   rpc SayHello (HelloRequest) returns (HelloResponse) {}
+
+  rpc Transform (stream Pixel) returns (stream Pixel) {}
 }
 
 message HelloRequest {
@@ -16,4 +18,21 @@ message HelloRequest {
 
 message HelloResponse {
   string message = 1;
+}
+
+message Pixel {
+  Color color = 1;
+  Point point = 2;
+}
+
+message Point {
+  int32 x = 1;
+  int32 y = 2;
+}
+
+message Color {
+float r = 1;
+float g = 2;
+float b = 3;
+float a = 4;
 }
