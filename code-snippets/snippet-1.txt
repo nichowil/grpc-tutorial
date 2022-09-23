@@ -1,5 +1,7 @@
 rpc Transform (stream Pixel) returns (stream Pixel) {}
 
+************************************************************************
+
 message Pixel {
     Color color = 1;
     Point point = 2;
@@ -16,6 +18,8 @@ message Color {
   float b = 3;
   float a = 4;
 }
+
+************************************************************************
 
 protoc --go_out=. --go_opt=paths=source_relative \
 --go-grpc_out=. --go-grpc_opt=paths=source_relative \
