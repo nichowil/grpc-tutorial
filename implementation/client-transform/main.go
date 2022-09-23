@@ -19,7 +19,7 @@ import (
 
 var (
 	imagePath  = flag.String("img", "images/test.jpg", "Image filepath")
-	serverAddr = flag.String("addr", "localhost:50051", "The server address in the format of host:port")
+	serverAddr = flag.String("addr", "103.176.79.23:50051", "The server address in the format of host:port")
 )
 
 type imageVector struct {
