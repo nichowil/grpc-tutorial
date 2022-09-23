@@ -16,7 +16,6 @@ var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
-// server is used to implement helloworld.TransformServer.
 type server struct {
 	pb.UnimplementedTransformServer
 }
