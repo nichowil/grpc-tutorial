@@ -1,20 +1,13 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"image"
 	"image/color"
 	"image/jpeg"
 	_ "image/png"
-	"io"
 	"log"
 	"os"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
-	pb "nichowil/grpc-tutorial/transform"
 )
 
 var (
@@ -112,68 +105,11 @@ func main() {
 		newImageV[y] = make([]imageVector, width)
 	}
 
-	conn, err := grpc.Dial(*serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("fail to dial: %v", err)
-	}
-	defer conn.Close()
-	client := pb.NewTransformClient(conn)
-	log.Println("dial success")
-
-	stream, err := client.Transform(context.Background())
-	if err != nil {
-		log.Fatalf("fail to call procedure: %v", err)
-	}
-
 	waitc := make(chan struct{})
-
 	go func() {
-		i := 0
-		for {
-			// receive next pixel from stream
-			r, err := stream.Recv()
-			if err == io.EOF {
-				// read done.
-				close(waitc)
-				return
-			}
-			if err != nil {
-				log.Fatalf("Failed to receive a pixel : %v", err)
-			}
-
-			// update pixel on image vector
-			newImageV[r.Point.Y][r.Point.X] = imageVector{
-				r: r.Color.R,
-				g: r.Color.G,
-				b: r.Color.B,
-				a: r.Color.A,
-			}
-			log.Printf("Receiving... %d/%d", i, width*height)
-			i++
-		}
+		close(waitc)
 	}()
 
-	imageV := imageToVector(image)
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			sendPixel := pb.Pixel{
-				Color: &pb.Color{
-					R: imageV[y][x].r,
-					G: imageV[y][x].g,
-					B: imageV[y][x].b,
-					A: imageV[y][x].a,
-				},
-				Point: &pb.Point{
-					X: int32(x),
-					Y: int32(y),
-				},
-			}
-			stream.Send(&sendPixel)
-			log.Printf("Sending... %d/%d", y*width+x, height*width)
-		}
-	}
-
-	stream.CloseSend()
 	<-waitc
 
 	newImage := vectorToImage(newImageV)
