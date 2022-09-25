@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -24,6 +25,23 @@ type server struct {
 func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloResponse, error) {
 	log.Printf("Received: %v", in.GetName())
 	return &pb.HelloResponse{Message: "Hello " + in.GetName()}, nil
+}
+
+func (s *server) Transform(stream pb.Transform_TransformServer) error {
+	for {
+		pixel, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		// do smth to pixel here
+		pixel.Color.R = 0
+
+		stream.Send(pixel)
+	}
 }
 
 func main() {
