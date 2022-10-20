@@ -97,7 +97,6 @@ func vectorToImage(res [][]imageVector) (img image.Image) {
 func main() {
 	flag.Parse()
 	var (
-		//opts      []grpc.DialOption
 		newImageV [][]imageVector
 	)
 
@@ -119,12 +118,17 @@ func main() {
 	}
 	defer conn.Close()
 	client := pb.NewTransformClient(conn)
+	log.Println("dial success")
 
 	stream, err := client.Transform(context.Background())
+	if err != nil {
+		log.Fatalf("fail to call procedure: %v", err)
+	}
 
 	waitc := make(chan struct{})
 
 	go func() {
+		i := 0
 		for {
 			// receive next pixel from stream
 			r, err := stream.Recv()
@@ -134,7 +138,7 @@ func main() {
 				return
 			}
 			if err != nil {
-				log.Fatalf("Failed to receive a note : %v", err)
+				log.Fatalf("Failed to receive a pixel : %v", err)
 			}
 
 			// update pixel on image vector
@@ -144,6 +148,8 @@ func main() {
 				b: r.Color.B,
 				a: r.Color.A,
 			}
+			log.Printf("Receiving... %d/%d", i, width*height)
+			i++
 		}
 	}()
 
@@ -163,6 +169,7 @@ func main() {
 				},
 			}
 			stream.Send(&sendPixel)
+			log.Printf("Sending... %d/%d", y*width+x, height*width)
 		}
 	}
 
@@ -170,6 +177,9 @@ func main() {
 	<-waitc
 
 	newImage := vectorToImage(newImageV)
-	saveImageToFilePath(newImage, "images/result.jpg")
+	err = saveImageToFilePath(newImage, "images/result.jpg")
+	if err != nil {
+		log.Fatalf("Failed to save image : %v", err)
+	}
 
 }

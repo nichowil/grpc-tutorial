@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -16,12 +17,17 @@ var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
-type transformServer struct {
+type server struct {
 	pb.UnimplementedTransformServer
 }
 
-func (s *transformServer) Transform(stream pb.Transform_TransformServer) error {
-	//var imageVector [][]pb.Color
+// SayHello implements helloworld.TransformServer
+func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloResponse, error) {
+	log.Printf("Received: %v", in.GetName())
+	return &pb.HelloResponse{Message: "Hello " + in.GetName()}, nil
+}
+
+func (s *server) Transform(stream pb.Transform_TransformServer) error {
 	for {
 		pixel, err := stream.Recv()
 		if err == io.EOF {
@@ -45,7 +51,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	pb.RegisterTransformServer(s, &transformServer{})
+	pb.RegisterTransformServer(s, &server{})
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
