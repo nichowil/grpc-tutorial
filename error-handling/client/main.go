@@ -2,13 +2,16 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
 	pb "nichowil/grpc-tutorial/transform"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -31,6 +34,22 @@ func main() {
 	r, err = c.SimulateError(ctx, &pb.ErrorHandlingRequest{Message: "timeout"})
 	if err != nil {
 		log.Printf("could not simulate error: %v", err)
+	}
+
+	r, err = c.SimulateError(ctx, &pb.ErrorHandlingRequest{Message: "detail"})
+	if err != nil {
+		log.Printf("could not simulate error: %v", err)
+		st := status.Convert(err)
+		for _, detail := range st.Details() {
+			switch t := detail.(type) {
+			case *errdetails.BadRequest:
+				fmt.Println("Oops! Your request was rejected by the server.")
+				for _, violation := range t.GetFieldViolations() {
+					fmt.Printf("The %q field was wrong:\n", violation.GetField())
+					fmt.Printf("\t%s\n", violation.GetDescription())
+				}
+			}
+		}
 	}
 
 	log.Printf("Response: %s", r.GetMessage())

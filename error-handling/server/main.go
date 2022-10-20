@@ -8,6 +8,7 @@ import (
 	"net"
 	"time"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 
@@ -32,6 +33,23 @@ func (s *server) SimulateError(ctx context.Context, in *pb.ErrorHandlingRequest)
 		return &pb.ErrorHandlingResponse{}, status.Error(codes.InvalidArgument, "Max num of characters exceed")
 	} else if in.GetMessage() == "timeout" {
 		time.Sleep(time.Second * 2)
+	} else if in.GetMessage() == "detail" {
+		st := status.New(codes.InvalidArgument, "invalid username")
+		desc := "The message must only contain alphanumeric characters"
+		v := &errdetails.BadRequest_FieldViolation{
+			Field:       "message",
+			Description: desc,
+		}
+		br := &errdetails.BadRequest{}
+		br.FieldViolations = append(br.FieldViolations, v)
+		st, err := st.WithDetails(br)
+		if err != nil {
+			// If this errored, it will always error
+			// here, so better call fatal so we can figure
+			// out why than have this silently passing.
+			log.Fatal(fmt.Sprintf("Unexpected error attaching metadata: %v", err))
+		}
+		return &pb.ErrorHandlingResponse{}, st.Err()
 	}
 
 	return &pb.ErrorHandlingResponse{Message: "Testing error code : " + in.GetMessage()}, nil

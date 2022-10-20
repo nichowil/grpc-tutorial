@@ -96,7 +96,7 @@ func vectorToImage(res [][]imageVector) (img image.Image) {
 
 func main() {
 	// Set up a connection to the server.
-	conn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(SimpleLogInterceptor))
+	conn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithUnaryInterceptor(SimpleLogInterceptor), grpc.WithStreamInterceptor(StreamClientInterceptor))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -106,21 +106,23 @@ func main() {
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	r, err := c.SimulateError(ctx, &pb.ErrorHandlingRequest{Message: "invalid argument"})
+
+	_, err = c.SimulateError(ctx, &pb.ErrorHandlingRequest{Message: "invalid argument"})
 	if err != nil {
 		log.Printf("could not simulate error: %v\n", err) // log.Fatal stop apps when called
 	}
 
-	r, err = c.SimulateError(ctx, &pb.ErrorHandlingRequest{Message: "timeout"})
+	_, err = c.SimulateError(ctx, &pb.ErrorHandlingRequest{Message: "timeout"})
 	if err != nil {
 		log.Printf("could not simulate error: %v", err)
 	}
 
-	r, err = c.SimulateError(ctx, &pb.ErrorHandlingRequest{Message: "success"})
+	rsuccess, err := c.SimulateError(context.Background(), &pb.ErrorHandlingRequest{Message: "success"})
 	if err != nil {
-		log.Printf("could not simulate error: %v", err)
+		log.Printf("could not simulate error: %v\n", err)
 	}
-	log.Printf("Response: %s", r.GetMessage())
+
+	log.Printf("Response: %s", rsuccess.GetMessage())
 
 	flag.Parse()
 	var (
@@ -194,7 +196,18 @@ func main() {
 }
 
 func SimpleLogInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-	log.Println("Intercept : ", req)
+	log.Println("Interceptor client : ", req)
 	err := invoker(ctx, method, req, reply, cc, opts...)
 	return err
+}
+
+func StreamClientInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+	// Call 'streamer' to write messages to the stream before this function returns
+	log.Println("Interceptor stream client")
+	s, err := streamer(ctx, desc, cc, method, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return s, err
 }
